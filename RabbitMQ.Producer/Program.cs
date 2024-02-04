@@ -1,5 +1,4 @@
-using RabbitMQ.Client;
-using RabbitMQ.Producer.Application.Config;
+using MassTransit;
 
 namespace RabbitMQ.Producer;
 
@@ -28,15 +27,17 @@ public class Program
         var rabbitMqUser = configuration.GetValue<string>("RabbitMq:User");
         var rabbitMqPass = configuration.GetValue<string>("RabbitMq:Pass");
 
-        builder.Services.AddSingleton<IConnectionFactory, ConnectionFactory>(_ => new ConnectionFactory
+        builder.Services.AddMassTransit(x =>
         {
-            HostName = rabbitMqHost,
-            UserName = rabbitMqUser,
-            Password = rabbitMqPass
+            x.UsingRabbitMq((context, cfg) =>
+            {
+                cfg.Host(new Uri($"rabbitmq://{rabbitMqHost}"), h =>
+                {
+                    h.Username(rabbitMqUser);
+                    h.Password(rabbitMqPass);
+                });
+            });
         });
-        
-        // DI
-        builder.Services.AddServiceCollection();
         
         var app = builder.Build();
 

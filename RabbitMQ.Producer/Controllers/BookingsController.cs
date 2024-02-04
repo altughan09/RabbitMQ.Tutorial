@@ -1,8 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using RabbitMQ.Producer.Domain.Constants;
+﻿using MassTransit;
+using Microsoft.AspNetCore.Mvc;
 using RabbitMQ.Producer.Domain.Dto;
-using RabbitMQ.Producer.Domain.Entities;
-using RabbitMQ.Producer.Domain.Interfaces.Services;
+using RabbitMQ.SharedProject;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace RabbitMQ.Producer.Controllers;
@@ -11,29 +10,28 @@ namespace RabbitMQ.Producer.Controllers;
 [Route("api/[controller]")]
 public class BookingsController : ControllerBase
 {
-    private readonly IMessageProducer _messageProducer;
+    private readonly IPublishEndpoint _publishEndpoint;
 
-    public BookingsController(IMessageProducer messageProducer)
+    public BookingsController(IPublishEndpoint publishEndpoint)
     {
-        _messageProducer = messageProducer;
+        _publishEndpoint = publishEndpoint;
     }
 
     [HttpPost]
     [SwaggerOperation(Summary = "Create a booking")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public IActionResult CreateBooking(BookingDto bookingDto)
+    public async Task<IActionResult> CreateBooking(BookingDto bookingDto)
     {
         if (!ModelState.IsValid) return BadRequest();
         
-        // Logic to create a booking
-        var booking = new Booking
+        await _publishEndpoint.Publish<Booking>(new
         {
+            Id = Guid.NewGuid(),
             Description = bookingDto.Description,
             Amount = bookingDto.Amount,
-            Currency = bookingDto.Currency
-        };
-        
-        _messageProducer.SendMessage(booking, Queue.BOOKINGS);
+            Currency = bookingDto.Currency,
+            CreatedAt = DateTime.UtcNow
+        });
 
         return Ok();
     }

@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RabbitMQ.Producer", "Rabbit
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RabbitMQ.Consumer", "RabbitMQ.Consumer\RabbitMQ.Consumer.csproj", "{1FEF51E8-75E5-40B4-9F47-BB833A2C3BD4}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "RabbitMQ.SharedProject", "RabbitMQ.SharedProject\RabbitMQ.SharedProject.shproj", "{2F0A1053-43DF-415D-A2C9-FDBF996A24E8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

@@ -1,14 +1,13 @@
-﻿using System.Text;
+﻿using MassTransit;
 using Microsoft.Extensions.Configuration;
-using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
+using RabbitMQ.Consumer.Application;
 using RabbitMQ.Consumer.Domain.Constants;
 
 namespace RabbitMQ.Consumer;
 
 public class Program
 {
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
         var configuration = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
@@ -19,28 +18,30 @@ public class Program
         var rabbitMqUser = configuration["RabbitMq:User"];
         var rabbitMqPass = configuration["RabbitMq:Pass"];
 
-        var factory = new ConnectionFactory
+        var busControl = Bus.Factory.CreateUsingRabbitMq(cfg =>
         {
-            HostName = rabbitMqHost,
-            UserName = rabbitMqUser,
-            Password = rabbitMqPass
-        };
+            cfg.Host(new Uri($"rabbitmq://{rabbitMqHost}"), h =>
+            {
+                h.Username(rabbitMqUser);
+                h.Password(rabbitMqPass);
+            });
 
-        using var connection = factory.CreateConnection();
-        using var channel = connection.CreateModel();
+            cfg.ReceiveEndpoint(Queue.BOOKINGS, (IRabbitMqReceiveEndpointConfigurator e) =>
+            {
+                e.Consumer<MessageConsumer>();
+            });
+        });
 
-        channel.QueueDeclare(queue: Queue.BOOKINGS, durable: true, exclusive: false, autoDelete: false, arguments: null);
+        await busControl.StartAsync();
         
-        var consumer = new EventingBasicConsumer(channel);
-        
-        consumer.Received += (model, eventArgs) =>
+        try
         {
-            var body = eventArgs.Body.ToArray();
-            var message = Encoding.UTF8.GetString(body);
-            Console.WriteLine($"Message received: {message}");
-        };
-
-        channel.BasicConsume(queue: Queue.BOOKINGS, autoAck: true, consumer: consumer);
-        Console.ReadKey();
+            Console.WriteLine("Press enter to exit");
+            await Task.Run(() => Console.ReadLine());
+        }
+        finally
+        {
+            await busControl.StopAsync();
+        }
     }
 }
